@@ -1,151 +1,62 @@
 # ShopVista — MERN E-Commerce Application
 
-A full-stack e-commerce platform built with MongoDB, Express, React, and Node.js.
+A clean, full-featured MERN e-commerce platform built with MongoDB, Express, React, and Node.js. Both the customer web app and merchant admin panel are optimized with React and Vite.
 
 ## Tech Stack
 
 | Layer      | Technology                                    |
 |------------|-----------------------------------------------|
-| Frontend   | React 19, Tailwind CSS 3, React Router, Axios |
-| Backend    | Node.js, Express 5, Mongoose 9                |
+| Frontend   | React (Vite), global vanilla CSS              |
+| Admin Panel| React (Vite), global vanilla CSS              |
+| Backend    | Node.js, Express, Mongoose                    |
 | Database   | MongoDB Atlas                                 |
-| Auth       | JWT (JSON Web Tokens) + bcrypt                |
+| Auth       | JWT (JSON Web Tokens) + bcryptjs              |
 
-## Project Structure
+## Folders
 
-```
-ShopVista/
-├── backend/
-│   ├── config/db.js              # MongoDB connection
-│   ├── controllers/              # Business logic
-│   │   ├── authController.js
-│   │   ├── productController.js
-│   │   ├── cartController.js
-│   │   └── orderController.js
-│   ├── middleware/
-│   │   ├── auth.js               # JWT verification
-│   │   └── errorHandler.js       # Global error handler
-│   ├── models/
-│   │   ├── User.js
-│   │   ├── Product.js
-│   │   ├── Cart.js
-│   │   └── Order.js
-│   ├── routes/
-│   │   ├── authRoutes.js
-│   │   ├── productRoutes.js
-│   │   ├── cartRoutes.js
-│   │   └── orderRoutes.js
-│   ├── server.js                 # Entry point
-│   ├── .env.example              # Environment template
-│   └── package.json
-└── frontend/
-    ├── src/
-    │   ├── components/
-    │   │   ├── Header.js
-    │   │   ├── ProductCard.js
-    │   │   ├── CartItem.js
-    │   │   └── CheckoutForm.js
-    │   ├── context/
-    │   │   ├── AuthContext.js
-    │   │   └── CartContext.js
-    │   ├── pages/
-    │   │   ├── Home.js
-    │   │   ├── ProductDetail.js
-    │   │   ├── CartPage.js
-    │   │   ├── Checkout.js
-    │   │   ├── Login.js
-    │   │   └── Orders.js
-    │   ├── api.js                # Axios instance
-    │   ├── App.js                # Router + Providers
-    │   └── index.js
-    ├── tailwind.config.js
-    └── package.json
-```
+- `/backend` - Express API
+- `/frontend` - Customer web app (Vite)
+- `/admin` - Merchant admin panel (Vite)
 
-## Setup Instructions
+## Local Run Instructions
 
-### Prerequisites
-- Node.js 18+ installed
-- A MongoDB Atlas account (free tier works)
-
-### 1. Backend Setup
-
+### 1. Database & Backend
 ```bash
 cd backend
-
-# Create .env file from template
 cp .env.example .env
-
-# Edit .env with your values:
-# MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/shopvista?retryWrites=true&w=majority
-# JWT_SECRET=your_secret_here
-# PORT=5000
-
-# Start the server
-npm run dev
-```
-
-### 2. Seed Sample Products
-
-After the backend is running, seed the database with sample products:
-
-```bash
-curl -X POST http://localhost:5000/api/products/seed
-```
-
-Or open `http://localhost:5000/api/products/seed` in your browser via POST (use Postman or the curl command).
-
-### 3. Frontend Setup
-
-```bash
-cd frontend
-
-# Start the React dev server
+# Edit .env with your MongoDB Atlas URI & JWT_SECRET
+npm install
 npm start
 ```
+Seed products by calling: `http://localhost:5001/api/products/seed` (GET request).
 
-The frontend runs on `http://localhost:3000` and connects to the backend at `http://localhost:5000`.
+### 2. Customer Frontend
+```bash
+cd frontend
+cp .env.example .env
+npm install
+npm run dev
+```
+Runs on `http://localhost:3000`.
 
-## API Endpoints
+### 3. Admin Panel
+```bash
+cd admin
+cp .env.example .env
+npm install
+npm run dev
+```
+Runs on `http://localhost:5173`.
 
-### Auth
-| Method | Endpoint            | Auth | Description       |
-|--------|---------------------|------|-------------------|
-| POST   | /api/auth/register  | No   | Create account    |
-| POST   | /api/auth/login     | No   | Login             |
-| GET    | /api/auth/profile   | Yes  | Get user profile  |
+## Vercel Deployment Instructions
 
-### Products
-| Method | Endpoint              | Auth | Description          |
-|--------|-----------------------|------|----------------------|
-| GET    | /api/products         | No   | List all products    |
-| GET    | /api/products/:id     | No   | Get single product   |
-| POST   | /api/products/seed    | No   | Seed sample products |
+All 3 projects are ready to be deployed as separate Vercel projects:
 
-### Cart
-| Method | Endpoint              | Auth | Description          |
-|--------|-----------------------|------|----------------------|
-| GET    | /api/cart              | Yes  | Get user's cart      |
-| POST   | /api/cart              | Yes  | Add item to cart     |
-| PUT    | /api/cart/:itemId      | Yes  | Update item quantity |
-| DELETE | /api/cart/:itemId      | Yes  | Remove item          |
-| DELETE | /api/cart/clear        | Yes  | Clear entire cart    |
+1. **`/backend`**: Deploy using `vercel.json` serverless rewrite. Make sure to specify env variables `MONGODB_URI`, `JWT_SECRET`, and `FRONTEND_URL` / `ADMIN_URL` for CORS configuration.
+2. **`/frontend`**: Deploy as a static Vite app. Define `VITE_API_URL` pointing to your deployed backend API.
+3. **`/admin`**: Deploy as a static Vite app. Define `VITE_API_URL` pointing to your deployed backend API.
 
-### Orders
-| Method | Endpoint              | Auth | Description          |
-|--------|-----------------------|------|----------------------|
-| POST   | /api/orders            | Yes  | Create order         |
-| GET    | /api/orders            | Yes  | Get user's orders    |
-| GET    | /api/orders/:id        | Yes  | Get order by ID      |
-
-## Features
-
-- User registration and login with JWT authentication
-- Browse products with search and category filtering
-- Product detail pages with quantity selector
-- Shopping cart with add/remove/update functionality
-- Checkout with shipping address form
-- Order history with expandable order details
-- Responsive design with dark theme
-- Toast notifications for user feedback
-- Loading states and error handling throughout
+## Live Deployed Links (Placeholders)
+- **Backend API**: `https://shopvista-api.vercel.app`
+- **Customer Web App**: `https://shopvista-store.vercel.app`
+- **Admin Dashboard**: `https://shopvista-admin.vercel.app`

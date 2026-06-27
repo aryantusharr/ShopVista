@@ -12,6 +12,10 @@ const cartItemSchema = new mongoose.Schema({
     min: [1, "Quantity must be at least 1"],
     default: 1,
   },
+  addedAt: {
+    type: Date,
+    default: Date.now,
+  },
 });
 
 const cartSchema = new mongoose.Schema(
@@ -23,8 +27,13 @@ const cartSchema = new mongoose.Schema(
       unique: true,
     },
     items: [cartItemSchema],
+    savedForLater: [cartItemSchema],
+    expiresAt: {
+      type: Date,
+    },
   },
   { timestamps: true }
 );
 
 module.exports = mongoose.model("Cart", cartSchema);
+

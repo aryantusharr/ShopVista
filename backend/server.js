@@ -1,36 +1,60 @@
-const express = require("express");
-const cors = require("cors");
-const dotenv = require("dotenv");
-const connectDB = require("./config/db");
-const errorHandler = require("./middleware/errorHandler");
-
-const authRoutes = require("./routes/authRoutes");
-const productRoutes = require("./routes/productRoutes");
-const cartRoutes = require("./routes/cartRoutes");
-const orderRoutes = require("./routes/orderRoutes");
-
-dotenv.config();
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+require('dotenv').config();
 
 const app = express();
 
-app.use(cors());
+// Middleware
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    process.env.FRONTEND_URL,
+    process.env.ADMIN_URL,
+  ].filter(Boolean),
+  credentials: true,
+}));
 app.use(express.json());
 
-app.get("/", (req, res) => {
-  res.json({ message: "ShopVista API is running" });
+// Routes
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/products', require('./routes/productRoutes'));
+app.use('/api/cart', require('./routes/cartRoutes'));
+app.use('/api/orders', require('./routes/orderRoutes'));
+app.use('/api/addresses', require('./routes/addressRoutes'));
+app.use('/api/wishlist', require('./routes/wishlistRoutes'));
+app.use('/api/admin', require('./routes/adminRoutes'));
+
+app.get('/', (req, res) => {
+  res.json({ message: 'ShopVista API is running' });
 });
 
-app.use("/api/auth", authRoutes);
-app.use("/api/products", productRoutes);
-app.use("/api/cart", cartRoutes);
-app.use("/api/orders", orderRoutes);
-
-app.use(errorHandler);
-
-const PORT = process.env.PORT || 5001;
-
-connectDB().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'UP',
+    database: mongoose.connection.readyState === 1 ? 'CONNECTED' : 'DISCONNECTED',
   });
 });
+
+// Error handler
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(500).json({ message: err.message || 'Something went wrong' });
+});
+
+// Connect DB and start server
+const PORT = process.env.PORT || 5001;
+
+mongoose
+  .connect(process.env.MONGODB_URI || process.env.MONGO_URI)
+  .then(() => {
+    console.log('MongoDB connected');
+    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  })
+  .catch((err) => {
+    console.error('DB connection error:', err);
+    process.exit(1);
+  });
+
+module.exports = app;

@@ -1,0 +1,22 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "server.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "server.js"
+    }
+  ],
+  "env": {
+    "MONGODB_URI": "Your MongoDB Atlas connection URI",
+    "MONGO_URI": "Your MongoDB Atlas connection URI (fallback)",
+    "JWT_SECRET": "Your secret JWT token signing key",
+    "FRONTEND_URL": "Your deployed frontend URL",
+    "ADMIN_URL": "Your deployed admin URL"
+  }
+}
