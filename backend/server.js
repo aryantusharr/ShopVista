@@ -1,9 +1,16 @@
+require('./config/dbMock');
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
+
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`[REQUEST] ${req.method} ${req.path}`);
+  next();
+});
 
 // Middleware
 app.use(cors({
@@ -27,13 +34,13 @@ app.use('/api/wishlist', require('./routes/wishlistRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 
 app.get('/', (req, res) => {
-  res.json({ message: 'ShopVista API is running' });
+  res.json({ message: 'ShopVista API is running in mock database mode' });
 });
 
 app.get('/health', (req, res) => {
   res.json({
     status: 'UP',
-    database: mongoose.connection.readyState === 1 ? 'CONNECTED' : 'DISCONNECTED',
+    database: 'MOCK_DATABASE_ACTIVE',
   });
 });
 
@@ -43,18 +50,11 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: err.message || 'Something went wrong' });
 });
 
-// Connect DB and start server
+// Start server directly (No MongoDB connection required)
 const PORT = process.env.PORT || 5001;
-
-mongoose
-  .connect(process.env.MONGODB_URI || process.env.MONGO_URI)
-  .then(() => {
-    console.log('MongoDB connected');
-    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-  })
-  .catch((err) => {
-    console.error('DB connection error:', err);
-    process.exit(1);
-  });
+app.listen(PORT, () => {
+  console.log('MongoDB connection bypassed successfully.');
+  console.log(`Server running in mock mode on port ${PORT}`);
+});
 
 module.exports = app;
