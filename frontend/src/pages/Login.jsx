@@ -76,6 +76,20 @@ export default function Login() {
           Don't have an account?{' '}
           <Link to="/signup" style={{ color: '#6c63ff', fontWeight: '600' }}>Sign up</Link>
         </p>
+
+        <p style={{ textAlign: 'center', marginTop: '8px', fontSize: '14px', color: '#888' }}>
+          Admin?{' '}
+          <Link to="/admin/login" style={{ color: '#e53e3e', fontWeight: '600' }}>Login here →</Link>
+        </p>
+
+        {/* Demo Credentials Box */}
+        <div style={{ marginTop: '24px', padding: '16px', background: '#f7fafc', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '13px' }}>
+          <p style={{ fontWeight: '700', color: '#4a5568', marginBottom: '8px' }}>Demo Credentials:</p>
+          <ul style={{ paddingLeft: '16px', margin: 0, color: '#718096', lineHeight: '1.6' }}>
+            <li>john@example.com / john123</li>
+            <li>jane@example.com / jane123</li>
+          </ul>
+        </div>
       </div>
     </div>
   );

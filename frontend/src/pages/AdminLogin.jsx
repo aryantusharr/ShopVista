@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import API from '../api';
 
 export default function AdminLogin() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+  const [success, setSuccess] = useState('');
 
   function handleChange(e) {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -15,69 +15,87 @@ export default function AdminLogin() {
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
+    setSuccess('');
 
     if (!form.email || !form.password) {
-      setError('All fields are required');
+      setError('Email and password are required');
       return;
     }
 
     try {
       setLoading(true);
-      const { data } = await API.post('/admin/login', form);
-      
+      const { data } = await API.post('/admin/login', {
+        email: form.email,
+        password: form.password,
+      });
+
+      // Save token to localStorage separately
       localStorage.setItem('adminToken', data.token);
+      
+      // Also store admin user info for dashboard sharing
       localStorage.setItem('shopvista_admin_user', JSON.stringify(data));
-      navigate('/');
+
+      setSuccess('Admin authenticated! Redirecting to Merchant Panel...');
+      
+      setTimeout(() => {
+        // Redirect to Vite Admin Panel
+        window.location.href = 'http://localhost:5173';
+      }, 1500);
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed');
+      setError(err.response?.data?.message || 'Login failed. Please verify credentials.');
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="login-page">
-      <div className="login-card">
-        <h1 className="login-title">ShopVista</h1>
-        <p className="login-subtitle">Admin Dashboard Login</p>
-        
+    <div className="auth-page">
+      <div className="auth-card">
+        <span className="auth-logo" style={{ color: '#e53e3e' }}>ShopVista Admin</span>
+        <h1 className="auth-title">Merchant Portal</h1>
+        <p className="auth-subtitle">Sign in to manage your store</p>
+
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label className="label">Admin Email</label>
             <input
+              className="input"
               type="email"
               name="email"
-              className="input"
               value={form.email}
               onChange={handleChange}
               placeholder="admin@shopvista.com"
-              required
             />
           </div>
+
           <div className="form-group">
             <label className="label">Password</label>
             <input
+              className="input"
               type="password"
               name="password"
-              className="input"
               value={form.password}
               onChange={handleChange}
               placeholder="••••••••"
-              required
             />
           </div>
 
           {error && <p className="error-msg">{error}</p>}
+          {success && <p className="success-msg">{success}</p>}
 
-          <button
-            type="submit"
-            className="btn btn-primary btn-full"
-            style={{ marginTop: '12px', backgroundColor: '#e53e3e', borderColor: '#e53e3e' }}
-            disabled={loading}
+          <button 
+            className="btn btn-primary btn-full btn-lg" 
+            type="submit" 
+            disabled={loading} 
+            style={{ marginTop: '16px', background: '#e53e3e', borderColor: '#e53e3e' }}
           >
-            {loading ? 'Authenticating...' : 'Login'}
+            {loading ? 'Authenticating...' : 'Sign In as Admin'}
           </button>
         </form>
+
+        <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '14px', color: '#888' }}>
+          <Link to="/login" style={{ color: '#6c63ff', fontWeight: '600' }}>← Back to user login</Link>
+        </p>
 
         {/* Demo Credentials Box */}
         <div style={{ marginTop: '24px', padding: '16px', background: '#fff5f5', border: '1px solid #fed7d7', borderRadius: '8px', fontSize: '13px' }}>

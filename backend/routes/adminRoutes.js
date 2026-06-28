@@ -1,5 +1,6 @@
 const express = require('express');
 const {
+  adminLogin,
   getAdminDashboard,
   getAdminOrders,
   updateOrderStatus,
@@ -14,6 +15,9 @@ const {
 const { protect, admin } = require('../middleware/auth');
 
 const router = express.Router();
+
+// Public admin login route
+router.post('/login', adminLogin);
 
 router.use(protect);
 router.use(admin);

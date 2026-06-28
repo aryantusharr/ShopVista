@@ -104,18 +104,36 @@ const sampleProducts = [
 
 store.Product.push(...sampleProducts);
 
-// Pre-seed Admin account
-const hashedAdminPassword = bcrypt.hashSync('adminpassword', 10);
-store.User.push({
-  _id: '6a3c6e42375be23ef08c0ba0',
-  name: 'Admin User',
-  email: 'admin@shopvista.com',
-  password: hashedAdminPassword,
-  phone: '9999999999',
-  isAdmin: true,
-  isActive: true,
-  createdAt: new Date(),
-  updatedAt: new Date()
+// Pre-seed demo users and admins
+const demoUsers = require('../config/users');
+const demoAdmins = require('../config/admins');
+
+demoUsers.forEach(user => {
+  store.User.push({
+    _id: user.id,
+    name: user.name,
+    email: user.email,
+    password: bcrypt.hashSync(user.password, 10),
+    phone: '9876543210',
+    isAdmin: false,
+    isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  });
+});
+
+demoAdmins.forEach(admin => {
+  store.User.push({
+    _id: admin.id,
+    name: admin.name,
+    email: admin.email,
+    password: bcrypt.hashSync(admin.password, 10),
+    phone: '9999999999',
+    isAdmin: true,
+    isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  });
 });
 
 function makeId() {
