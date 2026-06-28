@@ -1,37 +1,25 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
 
-console.log('[STARTUP] Initializing ShopVista Server...');
-
-// 1. Conditional Database Mode Setup
-const hasDatabaseUri = !!(process.env.MONGODB_URI || process.env.MONGO_URI);
-if (!hasDatabaseUri) {
-  console.log('[STARTUP] No MONGODB_URI or MONGO_URI environment variables found.');
-  console.log('[STARTUP] Activating local in-memory Mock Database mode...');
-  require('./config/dbMock');
-} else {
-  console.log('[STARTUP] MONGODB_URI/MONGO_URI detected. Activating MongoDB client configuration...');
-  // Asynchronous non-blocking database connection
-  mongoose.connect(process.env.MONGODB_URI || process.env.MONGO_URI)
-    .then(() => {
-      console.log('[DATABASE] MongoDB connection established successfully.');
-    })
-    .catch((err) => {
-      console.error('[DATABASE] Async MongoDB connection failure at startup:', err.message);
-    });
-}
+console.log('[STARTUP] Initializing database-free mock ShopVista Server...');
 
 const app = express();
 
-// Request logging middleware
+// Timestamped request & response logging middleware
 app.use((req, res, next) => {
-  console.log(`[REQUEST] ${req.method} ${req.path}`);
+  const start = Date.now();
+  const timestamp = new Date().toISOString();
+  
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    console.log(`[${timestamp}] ${req.method} ${req.originalUrl} - Status: ${res.statusCode} (${duration}ms)`);
+  });
+  
   next();
 });
 
-// 2. CORS Configuration
+// CORS Configuration
 const allowedOrigins = [
   'https://shopvista-wine.vercel.app',
   'https://shop-vista-beta.vercel.app',
@@ -49,9 +37,9 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 app.use(express.json());
-console.log('[STARTUP] CORS middleware configured. Whitelisted origins:', allowedOrigins);
+console.log('[STARTUP] CORS whitelist initialized:', allowedOrigins);
 
-// 3. Load Routes
+// Load routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/products', require('./routes/productRoutes'));
 app.use('/api/cart', require('./routes/cartRoutes'));
@@ -63,17 +51,15 @@ console.log('[STARTUP] API route handlers mapped successfully.');
 
 app.get('/', (req, res) => {
   res.json({
-    message: 'ShopVista API is running',
-    mode: hasDatabaseUri ? 'MONGODB_PRODUCTION' : 'IN_MEMORY_MOCK',
+    message: 'ShopVista API is running in mock database mode',
+    database: 'MOCK'
   });
 });
 
 app.get('/health', (req, res) => {
   res.json({
     status: 'OK',
-    database: hasDatabaseUri 
-      ? (mongoose.connection.readyState === 1 ? 'CONNECTED' : 'DISCONNECTED')
-      : 'MOCK_DATABASE_ACTIVE',
+    database: 'MOCK',
   });
 });
 
@@ -83,7 +69,7 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: err.message || 'Something went wrong' });
 });
 
-// 4. Start Listener
+// Start listener
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, (err) => {
   if (err) {

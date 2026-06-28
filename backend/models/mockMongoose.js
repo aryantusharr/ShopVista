@@ -1,17 +1,17 @@
-const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-// Mock data store
+// Global mock database store
 const store = {
   User: [],
   Product: [],
   Cart: [],
   Order: [],
   Address: [],
-  Wishlist: []
+  Wishlist: [],
+  StockLog: []
 };
 
-// Seed sample products initially so the app works out-of-the-box
+// Seed initial sample products
 const sampleProducts = [
   {
     _id: '6a3c6e42375be23ef08c0ba1',
@@ -104,7 +104,7 @@ const sampleProducts = [
 
 store.Product.push(...sampleProducts);
 
-// Pre-seed an Admin account so logging into merchant panel works instantly
+// Pre-seed Admin account
 const hashedAdminPassword = bcrypt.hashSync('adminpassword', 10);
 store.User.push({
   _id: '6a3c6e42375be23ef08c0ba0',
@@ -118,38 +118,29 @@ store.User.push({
   updatedAt: new Date()
 });
 
-// Helper to generate IDs
 function makeId() {
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 }
 
-// Deep clone helper
 function clone(obj) {
   if (!obj) return obj;
   return JSON.parse(JSON.stringify(obj));
 }
 
-// Convert query criteria to JS match function
 function matches(item, query) {
   if (!query) return true;
   for (let key in query) {
     let qval = query[key];
-    
-    // Support regex searching
     if (qval && qval.$regex) {
       const reg = new RegExp(qval.$regex, qval.$options || '');
       if (!reg.test(item[key])) return false;
       continue;
     }
-    
-    // Support $or
     if (key === '$or') {
       const ok = qval.some(subQuery => matches(item, subQuery));
       if (!ok) return false;
       continue;
     }
-    
-    // Support price filters like $gte, $lte
     if (qval && (qval.$gte !== undefined || qval.$lte !== undefined || qval.$gt !== undefined || qval.$lt !== undefined)) {
       const val = item[key];
       if (qval.$gte !== undefined && val < qval.$gte) return false;
@@ -158,25 +149,18 @@ function matches(item, query) {
       if (qval.$lt !== undefined && val >= qval.$lt) return false;
       continue;
     }
-
-    // Support stock filters like $gt
     if (qval && qval.$gt !== undefined) {
       if (item[key] <= qval.$gt) return false;
       continue;
     }
-
-    // Support element arrays comparison (e.g. status: { $in: [...] })
     if (qval && qval.$in) {
       if (!qval.$in.includes(item[key])) return false;
       continue;
     }
-
     if (qval && qval.$ne) {
       if (item[key] === qval.$ne) return false;
       continue;
     }
-
-    // Standard direct match
     if (item[key]?.toString() !== qval?.toString()) {
       return false;
     }
@@ -184,7 +168,6 @@ function matches(item, query) {
   return true;
 }
 
-// Model document wrapper to simulate Mongoose Document features
 class MockDocument {
   constructor(modelName, data) {
     Object.assign(this, clone(data));
@@ -193,22 +176,17 @@ class MockDocument {
     }
     this.createdAt = this.createdAt || new Date();
     this.updatedAt = new Date();
-    
     Object.defineProperty(this, '_modelName', { value: modelName, enumerable: false });
   }
 
   async save() {
     const list = store[this._modelName];
-    
-    // If saving user and password is not hashed yet, hash it
     if (this._modelName === 'User' && this.password && !this.password.startsWith('$2a$') && !this.password.startsWith('$2b$')) {
       const salt = await bcrypt.genSalt(10);
       this.password = await bcrypt.hash(this.password, salt);
     }
-
     const idx = list.findIndex(x => x._id.toString() === this._id.toString());
     const dataToSave = clone(this);
-    
     if (idx > -1) {
       list[idx] = dataToSave;
     } else {
@@ -232,13 +210,10 @@ class MockDocument {
   }
 
   populate(path, select) {
-    // Populate function mock
     if (this._modelName === 'Cart' && path.startsWith('items.product')) {
       this.items = this.items.map(item => {
         const prod = store.Product.find(p => p._id.toString() === (item.product?._id || item.product).toString());
-        if (prod) {
-          item.product = clone(prod);
-        }
+        if (prod) item.product = clone(prod);
         return item;
       });
     }
@@ -251,7 +226,6 @@ class MockDocument {
   }
 }
 
-// Mock Query chaining implementation (like .sort().populate().limit())
 class MockQuery {
   constructor(modelName, list) {
     this._modelName = modelName;
@@ -259,16 +233,14 @@ class MockQuery {
   }
 
   sort(sortOpt) {
-    if (Array.isArray(this._list)) {
-      if (typeof sortOpt === 'object') {
-        const key = Object.keys(sortOpt)[0];
-        const direction = sortOpt[key];
-        this._list.sort((a, b) => {
-          if (a[key] < b[key]) return -1 * direction;
-          if (a[key] > b[key]) return 1 * direction;
-          return 0;
-        });
-      }
+    if (Array.isArray(this._list) && typeof sortOpt === 'object') {
+      const key = Object.keys(sortOpt)[0];
+      const direction = sortOpt[key];
+      this._list.sort((a, b) => {
+        if (a[key] < b[key]) return -1 * direction;
+        if (a[key] > b[key]) return 1 * direction;
+        return 0;
+      });
     }
     return this;
   }
@@ -295,15 +267,12 @@ class MockQuery {
         if (this._modelName === 'Cart' && path.startsWith('items.product')) {
           doc.items = doc.items.map(item => {
             const prod = store.Product.find(p => p._id.toString() === (item.product?._id || item.product).toString());
-            if (prod) {
-              item.product = clone(prod);
-            }
+            if (prod) item.product = clone(prod);
             return item;
           });
         }
       });
     } else if (this._list) {
-      // Single item
       const doc = this._list;
       if (this._modelName === 'Wishlist' && path === 'products') {
         doc.products = doc.products.map(id => {
@@ -313,9 +282,7 @@ class MockQuery {
       if (this._modelName === 'Cart' && path.startsWith('items.product')) {
         doc.items = doc.items.map(item => {
           const prod = store.Product.find(p => p._id.toString() === (item.product?._id || item.product).toString());
-          if (prod) {
-            item.product = clone(prod);
-          }
+          if (prod) item.product = clone(prod);
           return item;
         });
       }
@@ -328,45 +295,42 @@ class MockQuery {
   }
 }
 
-// Mock Model builder
-function createMockModel(name) {
-  function Model(data) {
+function model(name) {
+  function ModelClass(data) {
     return new MockDocument(name, data);
   }
 
-  Model.find = (query) => {
+  ModelClass.find = (query) => {
     const list = store[name].filter(item => matches(item, query)).map(x => new MockDocument(name, x));
     return new MockQuery(name, list);
   };
 
-  Model.findOne = (query) => {
+  ModelClass.findOne = (query) => {
     const item = store[name].find(item => matches(item, query));
     const result = item ? new MockDocument(name, item) : null;
     return new MockQuery(name, result);
   };
 
-  Model.findById = (id) => {
+  ModelClass.findById = (id) => {
     const item = store[name].find(x => x._id.toString() === id?.toString());
     const result = item ? new MockDocument(name, item) : null;
     return new MockQuery(name, result);
   };
 
-  Model.create = async (data) => {
+  ModelClass.create = async (data) => {
     const doc = new MockDocument(name, data);
     await doc.save();
     return doc;
   };
 
-  Model.countDocuments = async (query) => {
+  ModelClass.countDocuments = async (query) => {
     const list = store[name].filter(item => matches(item, query));
     return list.length;
   };
 
-  Model.findByIdAndUpdate = async (id, update) => {
+  ModelClass.findByIdAndUpdate = async (id, update) => {
     const item = store[name].find(x => x._id.toString() === id?.toString());
     if (!item) return null;
-    
-    // Simulate mongoose update queries
     if (update.$inc) {
       for (let k in update.$inc) {
         item[k] = (item[k] || 0) + update.$inc[k];
@@ -374,13 +338,12 @@ function createMockModel(name) {
     } else {
       Object.assign(item, update);
     }
-    
     const doc = new MockDocument(name, item);
     await doc.save();
     return doc;
   };
 
-  Model.updateMany = async (query, update) => {
+  ModelClass.updateMany = async (query, update) => {
     const items = store[name].filter(item => matches(item, query));
     items.forEach(item => {
       Object.assign(item, update);
@@ -388,7 +351,7 @@ function createMockModel(name) {
     return { matchedCount: items.length, modifiedCount: items.length };
   };
 
-  Model.deleteOne = async (query) => {
+  ModelClass.deleteOne = async (query) => {
     const idx = store[name].findIndex(item => matches(item, query));
     if (idx > -1) {
       store[name].splice(idx, 1);
@@ -397,7 +360,7 @@ function createMockModel(name) {
     return { deletedCount: 0 };
   };
 
-  Model.deleteMany = async (query) => {
+  ModelClass.deleteMany = async (query) => {
     if (!query || Object.keys(query).length === 0) {
       store[name] = [];
     } else {
@@ -406,7 +369,7 @@ function createMockModel(name) {
     return { deletedCount: store[name].length };
   };
 
-  Model.insertMany = async (arr) => {
+  ModelClass.insertMany = async (arr) => {
     const docs = [];
     for (let data of arr) {
       const doc = new MockDocument(name, data);
@@ -416,22 +379,7 @@ function createMockModel(name) {
     return docs;
   };
 
-  return Model;
+  return ModelClass;
 }
 
-// Override mongoose connects and model registries
-mongoose.connect = () => {
-  console.log('MongoDB connection skipped: running in-memory mock database mode.');
-  return Promise.resolve();
-};
-
-const originalModel = mongoose.model.bind(mongoose);
-mongoose.model = (name, schema) => {
-  if (store[name]) {
-    return createMockModel(name);
-  }
-  return originalModel(name, schema);
-};
-
-// Export store for logging
-module.exports = store;
+module.exports = { model, store };
